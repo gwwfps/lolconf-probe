@@ -11,75 +11,62 @@ func abort(funcname string, err error) {
 }
 
 var (
-  user32              = syscall.NewLazyDLL("User32.dll")
-  enumDisplaySettings = user32.NewProc("EnumDisplaySettingsW")
+  user32, _              = syscall.LoadLibrary("user32.dll")
+  enumDisplaySettings, _ = syscall.GetProcAddress(user32, "EnumDisplaySettingsW")
 )
 
-// type PDevMode struct {
-//   dmOrientation int16
-//   dmPaperSize int16
-//   dmPaperLength int16
-//   dmPaperWidth int16
-//   dmScale int16
-//   dmCopies int16
-//   dmDefaultSource int16
-//   dmPrintQuality int16
-// }
-
-// type PointL struct {
-//   x int32
-//   y int32
-// }
-
-// type LPDevMode struct {
-//   dmPosition PointL
-//   dmDisplayOrientation uint32
-//   dmDisplayFixedOutput uint32
-// }
-
 type DevMode struct {
-  dmDeviceName    string
+  dmDeviceName    [32]byte
   dmSpecVersion   uint16
   dmDriverVersion uint16
   dmSize          uint16
   dmDriverExtra   uint16
   dmFields        uint32
 
-  submode uintptr
+  dmOrientation   uint16
+  dmPaperSize     uint16
+  dmPaperLength   uint16
+  dmPaperWidth    uint16
+  dmScale         int16
+  dmCopies        int16
+  dmDefaultSource uint16
+  dmPrintQuality  uint16
 
   dmColor       int16
   dmDuplex      int16
   dmYResolution int16
   dmTTOption    int16
   dmCollate     int16
-  dmFormName    string
+  dmFormName    [32]byte
 
   dmLogPixels        uint16
   dmBitsPerPel       uint32
   dmPelsWidth        uint32
   dmPelsHeight       uint32
-  flagsOrNup         uintptr
+  dmDisplayFlags     uint32
   dmDisplayFrequency uint32
-  dmICMMethod        uint32
-  dmICMIntent        uint32
-  dmMediaType        uint32
-  dmDitherType       uint32
-  dmReserved1        uint32
-  dmReserved2        uint32
-  dmPanningWidth     uint32
-  dmPanningHeight    uint32
 }
 
-func main() {
-  var iModeNum = 0
+func invokeEnumDisplaySettings(iModeNum int) *DevMode {
   var devMode = new(DevMode)
-  _, _, callErr := syscall.Syscall(enumDisplaySettings.Addr(),
-    3,
-    0,
-    uintptr(iModeNum),
-    uintptr(unsafe.Pointer(&devMode)))
+  devMode.dmSize = uint16(unsafe.Sizeof(DevMode{}))
+  result, _, callErr := syscall.Syscall(uintptr(enumDisplaySettings), 3, 0, uintptr(iModeNum), uintptr(unsafe.Pointer(devMode)))
   if callErr != 0 {
     abort("failed call", callErr)
   }
-  fmt.Printf("%+v", devMode)
+  if result == 1 {
+    return devMode
+  } else {
+    return nil
+  }
+}
+
+func main() {
+  for iModeNum := 0; ; iModeNum++ {
+    devMode := invokeEnumDisplaySettings(iModeNum)
+    if devMode == nil {
+      break
+    }
+    fmt.Println(devMode)
+  }
 }
