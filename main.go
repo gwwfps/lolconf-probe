@@ -11,49 +11,33 @@ func abort(funcname string, err error) {
 }
 
 var (
-  user32, _              = syscall.LoadLibrary("user32.dll")
-  enumDisplaySettings, _ = syscall.GetProcAddress(user32, "EnumDisplaySettingsW")
+  user32              = syscall.NewLazyDLL("user32.dll")
+  enumDisplaySettings = user32.NewProc("EnumDisplaySettingsExW")
 )
 
-type DevMode struct {
-  dmDeviceName    [32]byte
-  dmSpecVersion   uint16
-  dmDriverVersion uint16
-  dmSize          uint16
-  dmDriverExtra   uint16
-  dmFields        uint32
+type SimpleDevMode struct {
+  filler1 [34]uint16
 
-  dmOrientation   uint16
-  dmPaperSize     uint16
-  dmPaperLength   uint16
-  dmPaperWidth    uint16
-  dmScale         int16
-  dmCopies        int16
-  dmDefaultSource uint16
-  dmPrintQuality  uint16
+  Size uint16
 
-  dmColor       int16
-  dmDuplex      int16
-  dmYResolution int16
-  dmTTOption    int16
-  dmCollate     int16
-  dmFormName    [32]byte
+  filler2 [50]uint16
 
-  dmLogPixels        uint16
-  dmBitsPerPel       uint32
-  dmPelsWidth        uint32
-  dmPelsHeight       uint32
-  dmDisplayFlags     uint32
-  dmDisplayFrequency uint32
+  Width  uint32
+  Height uint32
+
+  filler3 [10]uint32
 }
 
-func invokeEnumDisplaySettings(iModeNum int) *DevMode {
-  var devMode = new(DevMode)
-  devMode.dmSize = uint16(unsafe.Sizeof(DevMode{}))
-  result, _, callErr := syscall.Syscall(uintptr(enumDisplaySettings), 3, 0, uintptr(iModeNum), uintptr(unsafe.Pointer(devMode)))
-  if callErr != 0 {
-    abort("failed call", callErr)
-  }
+func invokeEnumDisplaySettings(iModeNum int) *SimpleDevMode {
+  var devMode = new(SimpleDevMode)
+  devMode.DmSize = uint16(unsafe.Sizeof(SimpleDevMode{}))
+
+  result, _, _ := enumDisplaySettings.Call(
+    uintptr(unsafe.Pointer(nil)),
+    uintptr(iModeNum),
+    uintptr(unsafe.Pointer(devMode)),
+    uintptr(0))
+
   if result == 1 {
     return devMode
   } else {
@@ -67,6 +51,6 @@ func main() {
     if devMode == nil {
       break
     }
-    fmt.Println(devMode)
+    fmt.Printf("%dx%d\n", devMode.DmPelsWidth, devMode.DmPelsHeight)
   }
 }
