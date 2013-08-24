@@ -11,8 +11,8 @@ var (
 )
 
 type ScreenResolution struct {
-  Width  uint8
-  Height uint8
+  Width  uint32
+  Height uint32
 }
 
 type simpleDevMode struct {
@@ -30,7 +30,7 @@ type simpleDevMode struct {
 
 func invokeEnumDisplaySettings(iModeNum int) *simpleDevMode {
   var devMode = new(simpleDevMode)
-  devMode.DmSize = uint16(unsafe.Sizeof(simpleDevMode{}))
+  devMode.Size = uint16(unsafe.Sizeof(simpleDevMode{}))
 
   result, _, _ := enumDisplaySettings.Call(
     uintptr(unsafe.Pointer(nil)),
@@ -46,7 +46,7 @@ func invokeEnumDisplaySettings(iModeNum int) *simpleDevMode {
 }
 
 func ListAvailableResolutions() []ScreenResolution {
-  resolutions := make([]ScreenResolution)
+  resolutions := make([]ScreenResolution, 0)
 
   for iModeNum := 0; ; iModeNum++ {
     devMode := invokeEnumDisplaySettings(iModeNum)
@@ -62,10 +62,7 @@ func ListAvailableResolutions() []ScreenResolution {
     }
 
     if !found {
-      res := new(ScreenResolution)
-      res.Width = devMode.Width
-      res.Height = devMode.Height
-      append(resolutions, &res)
+      resolutions = append(resolutions, ScreenResolution{devMode.Width, devMode.Height})
     }
   }
 

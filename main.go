@@ -3,8 +3,6 @@ package main
 import (
   "fmt"
   "github.com/gwwfps/lolconf-probe/display"
-  "syscall"
-  "unsafe"
 )
 
 func main() {
