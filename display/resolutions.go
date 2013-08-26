@@ -10,6 +10,10 @@ var (
   enumDisplaySettings = user32.NewProc("EnumDisplaySettingsExW")
 )
 
+type AvailableResolutions struct {
+  Resolutions []ScreenResolution
+}
+
 type ScreenResolution struct {
   Width  uint32
   Height uint32
@@ -45,7 +49,7 @@ func invokeEnumDisplaySettings(iModeNum int) *simpleDevMode {
   }
 }
 
-func ListAvailableResolutions() []ScreenResolution {
+func ListAvailableResolutions() (interface{}, error) {
   resolutions := make([]ScreenResolution, 0)
 
   for iModeNum := 0; ; iModeNum++ {
@@ -66,5 +70,5 @@ func ListAvailableResolutions() []ScreenResolution {
     }
   }
 
-  return resolutions
+  return AvailableResolutions{resolutions}, nil
 }
