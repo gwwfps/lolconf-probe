@@ -11,12 +11,12 @@ var (
 )
 
 type AvailableResolutions struct {
-  Resolutions []ScreenResolution
+  Resolutions []ScreenResolution `json:"resolutions"`
 }
 
 type ScreenResolution struct {
-  Width  uint32
-  Height uint32
+  Width  uint32 `json:"width"`
+  Height uint32 `json:"height"`
 }
 
 type simpleDevMode struct {
