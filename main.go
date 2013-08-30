@@ -4,7 +4,6 @@ import (
   "encoding/json"
   "fmt"
   "github.com/gwwfps/lolconf-probe/display"
-  "github.com/natefinch/npipe"
   "log"
   "net/http"
 )
@@ -38,12 +37,8 @@ func writeError(w http.ResponseWriter, e error) {
 
 func main() {
   http.HandleFunc("/resolutions", wrapHandler(display.ListAvailableResolutions))
-  l, e := npipe.Listen(`\\.\pipe\lolconf`)
+  e := http.ListenAndServe("127.0.0.1:5532", nil)
   if e != nil {
-    log.Fatal("Error listening on pipe: ", e)
-  }
-  serveError := http.Serve(l, nil)
-  if serveError != nil {
-    log.Fatal("Http serve error: ", serveError)
+    log.Fatal("ListenAndServe: ", e)
   }
 }
