@@ -1,44 +1,69 @@
 package main
 
 import (
+  "bufio"
   "encoding/json"
+  "errors"
   "fmt"
   "github.com/gwwfps/lolconf-probe/display"
-  "log"
-  "net/http"
+  "os"
+  "strings"
 )
 
-type handler func(http.ResponseWriter, *http.Request)
+type dispatcher struct {
+  handlers map[string]inner
+}
 type inner func() (interface{}, error)
-
-func wrapHandler(h inner) handler {
-  return func(w http.ResponseWriter, r *http.Request) {
-    result, handlerError := h()
-    if handlerError != nil {
-      writeError(w, handlerError)
-      return
-    }
-
-    serialized, marshalError := json.Marshal(result)
-    if marshalError != nil {
-      writeError(w, marshalError)
-      return
-    }
-
-    w.Header().Set("Content-Type", "application/json; charset=utf-8")
-    fmt.Fprint(w, string(serialized))
-  }
+type HanderError struct {
+  Message string `json:errorMsg`
 }
 
-func writeError(w http.ResponseWriter, e error) {
-  w.WriteHeader(http.StatusInternalServerError)
-  fmt.Fprint(w, e.Error())
+func (d *dispatcher) dispatch(command string) string {
+  inf := d.handlers[command]
+  if inf == nil {
+    return errorToString(errors.New("Invalid command: " + command))
+  }
+
+  result, innerError := inf()
+  if innerError != nil {
+    return errorToString(innerError)
+  }
+
+  serialized, marshalError := json.Marshal(result)
+  if marshalError != nil {
+    return errorToString(marshalError)
+  }
+
+  return string(serialized)
+}
+
+func (d *dispatcher) register(command string, f inner) {
+  if d.handlers == nil {
+    d.handlers = map[string]inner{}
+  }
+  d.handlers[command] = f
+}
+
+func errorToString(err error) string {
+  serialized, marshalError := json.Marshal(HanderError{err.Error()})
+  if marshalError != nil {
+    return "{\"Message\":\"" + err.Error() + " An additional error occurred during JSON serialization.\"}"
+  }
+  return string(serialized)
 }
 
 func main() {
-  http.HandleFunc("/resolutions", wrapHandler(display.ListAvailableResolutions))
-  e := http.ListenAndServe("127.0.0.1:5532", nil)
-  if e != nil {
-    log.Fatal("ListenAndServe: ", e)
+  d := new(dispatcher)
+  d.register("resolutions", display.ListAvailableResolutions)
+
+  reader := bufio.NewReader(os.Stdin)
+
+  var line string
+  var err error
+  for ; err == nil; line, err = reader.ReadString('\n') {
+    command := strings.Trim(line, "\r\n ")
+    if command != "" {
+      fmt.Println(d.dispatch(command))
+    }
   }
 }
