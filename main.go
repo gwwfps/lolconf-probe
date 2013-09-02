@@ -6,6 +6,7 @@ import (
   "errors"
   "fmt"
   "github.com/gwwfps/lolconf-probe/display"
+  "log"
   "os"
   "strings"
 )
@@ -58,12 +59,21 @@ func main() {
 
   reader := bufio.NewReader(os.Stdin)
 
+  logFile, _ := os.Create("probe.log")
+  defer logFile.Close()
+  log.SetOutput(logFile)
+
+  log.Println("Started probe.")
+
   var line string
   var err error
   for ; err == nil; line, err = reader.ReadString('\n') {
     command := strings.Trim(line, "\r\n ")
+    log.Println("Received command:", command)
     if command != "" {
-      fmt.Println(d.dispatch(command))
+      result := d.dispatch(command)
+      log.Println("Returning:", result)
+      fmt.Println(result)
     }
   }
 }
