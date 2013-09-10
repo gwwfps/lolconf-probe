@@ -68,11 +68,14 @@ func main() {
   var line string
   var err error
   for ; err == nil; line, err = reader.ReadString('\n') {
-    command := strings.Trim(line, "\r\n ")
-    log.Println("Received command:", command)
-    if command != "" {
+    trimmed := strings.Trim(line, "\r\n ")
+    log.Println("Received command:", trimmed)
+    if len(trimmed) > 16 {
+      header := command[:16]
+      json := command[16:]
       result := d.dispatch(command)
       log.Println("Returning:", result)
+      fmt.Printf(header)
       fmt.Println(result)
     }
   }
