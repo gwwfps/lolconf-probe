@@ -15,15 +15,15 @@ type dispatcher struct {
 }
 type inner func() (interface{}, error)
 type HanderError struct {
-  Message string `json:errorMsg`
+  Message string `json:"errorMsg"`
 }
 type Query struct {
-  Command string `json:command`
-  SeqNo   string `json:seqNo`
+  Command string `json:"command"`
+  SeqNo   string `json:"seqNo"`
 }
 type ResultWrapper struct {
-  Result interface{} `json:result`
-  SeqNo  string      `json:seqNo`
+  Result interface{} `json:"result"`
+  SeqNo  string      `json:"seqNo"`
 }
 
 func (d *dispatcher) dispatch(line string) string {
